@@ -66,5 +66,13 @@ dependencies {
     compile 'org.codehaus.groovy:groovy-all::indy'
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile( "org.spockframework:spock-spring" ) {
+        exclude module: 'groovy-all'
+    }
+    // Usual solution do not work in this particular case,
+    // that's why we added the core Spock module by hand.
+    testCompile( "org.spockframework:spock-core" )  {
+        exclude module: 'groovy-all'
+    }
 }
 
