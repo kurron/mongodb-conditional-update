@@ -32,6 +32,7 @@ to the document.  This exists for verification purposes.
 * [Spock 1.1-groovy-2.4](http://spockframework.org/)
 * [Azul's Zulu JDK 1.8.0_131](http://zulu.org/)
 * [Ubuntu 16.04](https://ubuntu.com/)
+* [Gradle 4.0.1](https://gradle.org/)
 
 # Guidebook
 Details about this project are contained in the [guidebook](guidebook/guidebook.md)
