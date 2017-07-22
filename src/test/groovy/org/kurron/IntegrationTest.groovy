@@ -41,22 +41,24 @@ class IntegrationTest  extends Specification {
 //        template.indexOps( TestData ).ensureIndex( new Index().on( '_id', Sort.Direction.ASC ).on( 'fencingToken', Sort.Direction.DESC ).named( 'fencingToken' ) )
     }
 
-    List<TestData> createData( int count = 10 ) {
+    List<TestData> createData( int count = 1000 ) {
         (1..count).collect {
             new TestData( id: 1, fencingToken: it, currentState: it )
         }
     }
 
     /*
-    So here is the problem, when the query fails, an upsert is performed, event when it fails
-    because the fending token is the cause.  The first time through, this is fine because it it
-    an insert.  The next time through, the upsert tries to kick in and you get a duplicate key
-    exception.  Unfortunately, MongoDB really wants us to split the insert from the update,
-    which ie exactly what we are trying to avoid.  Could we do it in two stages?
+    So here is the problem, when the query fails, an upsert is performed. The first time through,
+    this is fine because it it an insert.  The next time through, due to the fencing token, the
+    upsert tries to kick in and you get a duplicate key exception.  Unfortunately, MongoDB really
+    wants us to split the insert from the update, which ie exactly what we are trying to avoid.
+    The solution is try first with upsert enabled.  If you fail due to a duplicate key, we know
+    that the document is there and we try again with upsert disabled.  If the fencing token
+    prevents the update from happening, then we are done.  It is too bad we have to make
+    two trips to the database but it works and is probably the simplest solution.
      */
     static private List constructStatement( TestData it, boolean upsert = true ) {
         def query = new Query( where('_id').is(1 ).andOperator( where('fencingToken' ).lt( it.fencingToken ) ) )
-//        def query = new Query( where('_id').is(1 ) )
         def update = new Update().set( 'currentState', it.fencingToken ).push( 'touchedBy', it.fencingToken ).set( 'fencingToken', it.fencingToken )
         def options = new FindAndModifyOptions().upsert(upsert ).returnNew(true )
         [query, update, options]
@@ -106,7 +108,7 @@ class IntegrationTest  extends Specification {
 
     def 'random processing'() {
         given: 'randomized test data'
-        def data = createData()
+        def data = createData( 10000 )
         Collections.shuffle( data )
 
         when: 'data is saved to the database'
