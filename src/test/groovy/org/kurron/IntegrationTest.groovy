@@ -12,6 +12,8 @@ import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
 import spock.lang.Specification
 
+import java.time.Duration
+
 import static org.springframework.data.mongodb.core.query.Criteria.where
 
 /**
@@ -69,8 +71,9 @@ class IntegrationTest  extends Specification {
         template.findOne(query, TestData)
     }
 
-    private List<TestData> saveToDatabase(List<TestData> data) {
-        data.collect {
+    private String saveToDatabase(List<TestData> data) {
+        long start = System.currentTimeMillis()
+        data.each {
             try {
                 def (Query query, Update update, FindAndModifyOptions options) = constructStatement(it)
                 template.findAndModify(query, update, options, TestData)
@@ -80,6 +83,9 @@ class IntegrationTest  extends Specification {
                 template.findAndModify(query, update, options, TestData)
             }
         }
+        long stop = System.currentTimeMillis()
+        long duration = stop - start
+        Duration.ofMillis( duration ) as String
     }
 
     // make into data driven test
@@ -91,7 +97,8 @@ class IntegrationTest  extends Specification {
         def data = createData( size )
 
         when: 'data is saved to the database'
-        saveToDatabase( data )
+        def duration = saveToDatabase( data )
+        println "Duration: ${duration}"
 
         then: 'the database contains the expected state'
         def inDatabase = loadCurrentDocument()
@@ -107,7 +114,8 @@ class IntegrationTest  extends Specification {
         def data = createData( size ).reverse()
 
         when: 'data is saved to the database'
-        saveToDatabase(data)
+        def duration = saveToDatabase( data )
+        println "Duration: ${duration}"
 
         then: 'state in the database matches expectations'
         def inDatabase = loadCurrentDocument()
@@ -124,7 +132,8 @@ class IntegrationTest  extends Specification {
         Collections.shuffle( data )
 
         when: 'data is saved to the database'
-        saveToDatabase(data)
+        def duration = saveToDatabase( data )
+        println "Duration: ${duration}"
 
         then: 'state in the database matches expectations'
         def inDatabase = loadCurrentDocument()
