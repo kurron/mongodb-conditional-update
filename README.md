@@ -74,6 +74,20 @@ One of the two will "win". Lets assume A does.  B will get a duplicate key excep
 A has beat him to the punch and inserted the document.  B will need to trap that and try
 again in update mode.
 
+As expected, the quickest scenario to process is where the events arrive in reverse order.
+Since the most current event arrives first, the remaining events result in nothing being
+modified in the database.
+
+The in-order scenario was the slowest.  Since the most current event arrives last,
+each event results in a database modification.  The conditional update does not
+end up providing any benefit in this situation.
+
+When event sequencing was randomized, the performance was much better.  I expected it to be
+right in the middle of the previous scenarios. Instead, it turned out to take only
+roughly one-third the time of the sequential processing scenario. This could be that
+I didn't run enough tests to get more accurate results so take this result with
+a grain of salt.
+
 In summary, if it is possible to know that a document already exists in the database,
 conditional updates work great.  If you cannot assume the existence of the document, then
 some orchestration is required.  The logic isn't complex but it does make things a little less
