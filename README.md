@@ -66,7 +66,7 @@ single additional  database hit is required -- that initial "is there a document
 query.
 
 In a concurrent environment, the upsert map will need to be thread-safe but that is easily
-achieved,  In a distributed environment, where multiple processes are competing to update
+achieved.  In a distributed environment, where multiple processes are competing to update
 the same document, the try/catch/retry model needs to be reintroduced.  Assuming a clean
 database and two processes working on an event targetting the same document, Process A
 and Process B both will see that Document 1 is not in the database and will enable upserting.
@@ -85,7 +85,7 @@ end up providing any benefit in this situation.
 When event sequencing was randomized, the performance was much better.  I expected it to be
 right in the middle of the previous scenarios. Instead, it turned out to take only
 roughly one-third the time of the sequential processing scenario. This could be that
-I didn't run enough tests to get more accurate results so take this result with
+I didn't run enough tests to get more accurate results so take this with
 a grain of salt.
 
 In summary, if it is possible to know that a document already exists in the database,
