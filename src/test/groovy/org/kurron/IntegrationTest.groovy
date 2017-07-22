@@ -82,21 +82,29 @@ class IntegrationTest  extends Specification {
         }
     }
 
+    // make into data driven test
+    // assert on how many touches got through
+
     def 'sequential processing'() {
         given: 'sequential test data'
-        def data = createData()
+        def size = 1000
+        def data = createData( size )
 
         when: 'data is saved to the database'
-        saveToDatabase(data)
+        saveToDatabase( data )
 
-        then: 'state in the database matches expectations'
+        then: 'the database contains the expected state'
         def inDatabase = loadCurrentDocument()
         inDatabase.currentState == data.last().currentState
+
+        and: 'the document was touched once for each event'
+        inDatabase.touchedBy.size() == size
     }
 
     def 'reverse processing'() {
         given: 'reversed test data'
-        def data = createData().reverse()
+        def size = 1000
+        def data = createData( size ).reverse()
 
         when: 'data is saved to the database'
         saveToDatabase(data)
@@ -104,11 +112,15 @@ class IntegrationTest  extends Specification {
         then: 'state in the database matches expectations'
         def inDatabase = loadCurrentDocument()
         inDatabase.currentState == data.first().currentState
+
+        and: 'the document was touched only by the first event'
+        inDatabase.touchedBy.size() == 1
     }
 
     def 'random processing'() {
         given: 'randomized test data'
-        def data = createData( 10000 )
+        def size = 1000
+        def data = createData( size )
         Collections.shuffle( data )
 
         when: 'data is saved to the database'
