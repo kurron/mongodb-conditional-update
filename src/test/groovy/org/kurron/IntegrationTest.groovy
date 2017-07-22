@@ -62,7 +62,7 @@ class IntegrationTest  extends Specification {
     static private List constructStatement( TestData it, boolean upsert = true ) {
         def query = new Query( where('_id').is(1 ).andOperator( where('fencingToken' ).lt( it.fencingToken ) ) )
         def update = new Update().set( 'currentState', it.fencingToken ).push( 'touchedBy', it.fencingToken ).set( 'fencingToken', it.fencingToken )
-        def options = new FindAndModifyOptions().upsert(upsert ).returnNew(true )
+        def options = new FindAndModifyOptions().upsert( upsert ).returnNew(true )
         [query, update, options]
     }
 
@@ -74,21 +74,35 @@ class IntegrationTest  extends Specification {
     private String saveToDatabase(List<TestData> data) {
         long start = System.currentTimeMillis()
         data.each {
-            try {
-                def (Query query, Update update, FindAndModifyOptions options) = constructStatement(it)
-                template.findAndModify(query, update, options, TestData)
-            }
-            catch (DuplicateKeyException) {
-                def (Query query, Update update, FindAndModifyOptions options) = constructStatement(it, false)
-                template.findAndModify(query, update, options, TestData)
-            }
+            boolean requireUpsert = !isDocumentInDatabase( it.id )
+            def (Query query, Update update, FindAndModifyOptions options) = constructStatement( it, requireUpsert )
+            template.findAndModify(query, update, options, TestData)
         }
         long stop = System.currentTimeMillis()
         long duration = stop - start
         Duration.ofMillis( duration ) as String
     }
 
+    private boolean isDocumentInDatabase( int id ) {
+        null != template.findById( id, TestData )
+    }
+
     // make into data driven test
+
+    def 'random processing'() {
+        given: 'randomized test data'
+        def size = 10000
+        def data = createData( size )
+        Collections.shuffle( data )
+
+        when: 'data is saved to the database'
+        def duration = saveToDatabase( data )
+        println "${size} events took ${duration} to process"
+
+        then: 'state in the database matches expectations'
+        def inDatabase = loadCurrentDocument()
+        inDatabase.currentState == data.currentState.max()
+    }
 
     def 'sequential processing'() {
         given: 'sequential test data'
@@ -97,7 +111,7 @@ class IntegrationTest  extends Specification {
 
         when: 'data is saved to the database'
         def duration = saveToDatabase( data )
-        println "Duration: ${duration}"
+        println "${size} events took ${duration} to process"
 
         then: 'the database contains the expected state'
         def inDatabase = loadCurrentDocument()
@@ -114,7 +128,7 @@ class IntegrationTest  extends Specification {
 
         when: 'data is saved to the database'
         def duration = saveToDatabase( data )
-        println "Duration: ${duration}"
+        println "${size} events took ${duration} to process"
 
         then: 'state in the database matches expectations'
         def inDatabase = loadCurrentDocument()
@@ -124,18 +138,4 @@ class IntegrationTest  extends Specification {
         inDatabase.touchedBy.size() == 1
     }
 
-    def 'random processing'() {
-        given: 'randomized test data'
-        def size = 10000
-        def data = createData( size )
-        Collections.shuffle( data )
-
-        when: 'data is saved to the database'
-        def duration = saveToDatabase( data )
-        println "Duration: ${duration}"
-
-        then: 'state in the database matches expectations'
-        def inDatabase = loadCurrentDocument()
-        inDatabase.currentState == data.currentState.max()
-    }
 }
