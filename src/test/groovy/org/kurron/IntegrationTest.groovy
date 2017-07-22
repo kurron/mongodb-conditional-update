@@ -89,11 +89,10 @@ class IntegrationTest  extends Specification {
     }
 
     // make into data driven test
-    // assert on how many touches got through
 
     def 'sequential processing'() {
         given: 'sequential test data'
-        def size = 1000
+        def size = 10000
         def data = createData( size )
 
         when: 'data is saved to the database'
@@ -110,7 +109,7 @@ class IntegrationTest  extends Specification {
 
     def 'reverse processing'() {
         given: 'reversed test data'
-        def size = 1000
+        def size = 10000
         def data = createData( size ).reverse()
 
         when: 'data is saved to the database'
@@ -127,7 +126,7 @@ class IntegrationTest  extends Specification {
 
     def 'random processing'() {
         given: 'randomized test data'
-        def size = 1000
+        def size = 10000
         def data = createData( size )
         Collections.shuffle( data )
 
