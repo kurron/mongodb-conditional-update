@@ -48,16 +48,6 @@ class IntegrationTest  extends Specification {
         }
     }
 
-    /*
-    So here is the problem, when the query fails, an upsert is performed. The first time through,
-    this is fine because it it an insert.  The next time through, due to the fencing token, the
-    upsert tries to kick in and you get a duplicate key exception.  Unfortunately, MongoDB really
-    wants us to split the insert from the update, which ie exactly what we are trying to avoid.
-    The solution is try first with upsert enabled.  If you fail due to a duplicate key, we know
-    that the document is there and we try again with upsert disabled.  If the fencing token
-    prevents the update from happening, then we are done.  It is too bad we have to make
-    two trips to the database but it works and is probably the simplest solution.
-     */
     private TestData loadCurrentDocument() {
         def query = new Query( where('_id' ).is(1 ) )
         TestData found = template.findOne(query, TestData)
@@ -65,7 +55,6 @@ class IntegrationTest  extends Specification {
     }
 
     private String saveToDatabase(List<TestData> data) {
-        // Observation: reducing the number of finds does not appear to yield a significant performance boost
         Map<Integer,Boolean> idToExists = [:]
         long start = System.currentTimeMillis()
         data.each {
