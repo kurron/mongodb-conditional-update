@@ -40,7 +40,6 @@ class IntegrationTest  extends Specification {
         template.createCollection( TestData )
         template.indexOps( TestData ).dropAllIndexes()
         template.indexOps( TestData ).ensureIndex( new Index().on( '_id', Sort.Direction.ASC ).on( 'fencingToken', Sort.Direction.DESC ).unique( Index.Duplicates.RETAIN ).named( 'fencingToken' ) )
-//        template.indexOps( TestData ).ensureIndex( new Index().on( '_id', Sort.Direction.ASC ).on( 'fencingToken', Sort.Direction.DESC ).named( 'fencingToken' ) )
     }
 
     List<TestData> createData( int count = 1000 ) {
@@ -59,24 +58,26 @@ class IntegrationTest  extends Specification {
     prevents the update from happening, then we are done.  It is too bad we have to make
     two trips to the database but it works and is probably the simplest solution.
      */
-    static private List constructStatement( TestData it, boolean upsert = true ) {
-        def query = new Query( where('_id').is(1 ).andOperator( where('fencingToken' ).lt( it.fencingToken ) ) )
-        def update = new Update().set( 'currentState', it.fencingToken ).push( 'touchedBy', it.fencingToken ).set( 'fencingToken', it.fencingToken )
-        def options = new FindAndModifyOptions().upsert( upsert ).returnNew(true )
-        [query, update, options]
-    }
-
     private TestData loadCurrentDocument() {
         def query = new Query( where('_id' ).is(1 ) )
-        template.findOne(query, TestData)
+        TestData found = template.findOne(query, TestData)
+        found
     }
 
     private String saveToDatabase(List<TestData> data) {
+        // Observation: reducing the number of finds does not appear to yield a significant performance boost
+        Map<Integer,Boolean> idToExists = [:]
         long start = System.currentTimeMillis()
         data.each {
-            boolean requireUpsert = !isDocumentInDatabase( it.id )
-            def (Query query, Update update, FindAndModifyOptions options) = constructStatement( it, requireUpsert )
+            def key = it.id
+            // The use of documentExists.getOrDefault( key, isDocumentInDatabase( key ) ) did not work as I expected
+            def documentExists = idToExists.containsKey( key ) ? idToExists.get( key ) : isDocumentInDatabase( key )
+            boolean requireUpsert = !documentExists
+            def query = new Query( where('_id').is(1 ).andOperator( where('fencingToken' ).lt( it.fencingToken ) ) )
+            def update = new Update().set( 'currentState', it.fencingToken ).push( 'touchedBy', it.fencingToken ).set( 'fencingToken', it.fencingToken )
+            def options = new FindAndModifyOptions().upsert( requireUpsert ).returnNew(true )
             template.findAndModify(query, update, options, TestData)
+            idToExists.put( key, true )
         }
         long stop = System.currentTimeMillis()
         long duration = stop - start
@@ -84,6 +85,7 @@ class IntegrationTest  extends Specification {
     }
 
     private boolean isDocumentInDatabase( int id ) {
+        println 'isDocumentInDatabase!'
         null != template.findById( id, TestData )
     }
 
@@ -92,7 +94,7 @@ class IntegrationTest  extends Specification {
     def 'random processing'() {
         given: 'randomized test data'
         def size = 10000
-        def data = createData( size )
+        List<TestData> data = createData( size )
         Collections.shuffle( data )
 
         when: 'data is saved to the database'
