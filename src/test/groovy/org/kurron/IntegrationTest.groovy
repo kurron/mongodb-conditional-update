@@ -26,12 +26,20 @@ class IntegrationTest  extends Specification {
         template.dropCollection( TestData )
     }
 
-    def 'sequential processing'() {
-        given:
-        'foo'
+    List<TestData> createData( int count = 2 ) {
+        (1..count).collect {
+            new TestData( id: it, fencingToken: 0 )
+        }
+    }
 
-        when:
-        'bar'
+    def 'sequential processing'() {
+        given: 'sequential test data'
+        def data = createData()
+
+        when: 'data is saved to the database'
+        data.each {
+            template.save( it )
+        }
 
         then:
         true
