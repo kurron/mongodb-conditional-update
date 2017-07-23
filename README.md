@@ -74,6 +74,13 @@ One of the two will "win". Lets assume A does.  B will get a duplicate key excep
 A has beat him to the punch and inserted the document.  B will need to trap that and try
 again in update mode.
 
+When replica sets are in play, the try/catch/retry form will also be required.  Due to the
+replica lag, it is possible that a processor could ask the replica if the document exists
+and get a "no it doesn't" response.  Meanwhile, the document *has* been inserted on the
+primary node but the change has yet to arrived at the replica.  When the update is attempted,
+with the upsert flag enabled, a duplicate key exception will be thrown because the document
+exists.
+
 As expected, the quickest scenario to process is where the events arrive in reverse order.
 Since the most current event arrives first, the remaining events result in nothing being
 modified in the database.
