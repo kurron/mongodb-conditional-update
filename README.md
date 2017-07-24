@@ -57,7 +57,7 @@ and no exceptions are thrown.  In short, conditional *updates* work as expected 
 An optimization that can be made, at the expense of an additional trip to the database, is
 to do a `findOne` prior to the update and use that information to appropriately set the
 upsert flag.  If no document matches the id, upsert is on.  If a document using that id
-already exists, upsert is off.  Considering that we making a covered query, the lookup
+already exists, upsert is off.  Considering that we making an indexed query, the lookup
 time is negligible but the network round trip might be significant.
 
 A further optimization that can be made, at the expense of some RAM, is to maintain a lookup table
